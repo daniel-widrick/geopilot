@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>geopilot</title>
+<style>
+  :root{
+    --bg:#eaf0f0;--surface:#fff;--surface-2:#f3f7f7;--ink:#0f1c1f;--ink-2:#3c4c4f;--muted:#697c7f;
+    --line:#d8e2e2;--line-2:#e7eeee;--accent:#0a8598;--accent-2:#0a6b7b;--heat:#c96a24;
+    --good:#1f8f57;--warn:#b3801c;--crit:#c44a3c;--shadow:0 1px 2px #0f1c1f0a,0 4px 16px #0f1c1f0d;
+  }
+  @media(prefers-color-scheme:dark){:root:not([data-theme=light]){
+    --bg:#0a1214;--surface:#101e21;--surface-2:#152629;--ink:#e7f0f0;--ink-2:#b7c8c9;--muted:#7f9698;
+    --line:#213539;--line-2:#1a2b2f;--accent:#25b9cd;--accent-2:#54cfdf;--heat:#e2894a;
+    --good:#3fbd7c;--warn:#dcac3e;--crit:#e46a5a;--shadow:0 1px 2px #0006,0 6px 22px #0008;
+  }}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:clamp(14px,3vw,34px)}
+  .wrap{max-width:1060px;margin:0 auto}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .brand{font-size:clamp(20px,3vw,26px);font-weight:680;letter-spacing:-.01em}
+  .brand small{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .conn{font-size:12.5px;color:var(--muted)}
+  .conn .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:middle}
+  .conn.live .dot{background:var(--good);box-shadow:0 0 0 3px #1f8f5722}
+  h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:700;margin:26px 0 12px;display:flex;align-items:center;gap:9px}
+  h2::before{content:"";width:14px;height:2px;background:var(--accent);border-radius:2px}
+  .grid{display:grid;gap:14px}
+  .cards{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+  .cards3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .split{display:flex;gap:16px}
+  .half{flex:1;min-width:0}
+  .half+.half{padding-left:16px;border-left:1px solid var(--line-2)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:16px 18px;box-shadow:var(--shadow)}
+  .lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:7px}
+  .big{font-size:30px;font-weight:680;letter-spacing:-.02em}
+  .big .u{font-size:14px;color:var(--muted);font-weight:600;margin-left:2px}
+  .state{display:inline-flex;align-items:center;gap:9px;font-size:23px;font-weight:670}
+  .state .dot{width:11px;height:11px;border-radius:50%}
+  .cooling{color:var(--accent)}.cooling .dot{background:var(--accent)}
+  .heating{color:var(--heat)}.heating .dot{background:var(--heat)}
+  .standby{color:var(--muted)}.standby .dot{background:var(--muted)}
+  .good{color:var(--good)}.good .dot{background:var(--good)}
+  .crit{color:var(--crit)}.crit .dot{background:var(--crit)}
+  .warn{color:var(--warn)}
+  .sub{font-size:12px;color:var(--muted);margin-top:5px}
+  .zone{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .zone:last-child{border-bottom:0}
+  .zone .z-temp{font-size:26px;font-weight:680}
+  .zone .z-sp{font-size:12.5px;color:var(--muted)}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--line-2);border-radius:10px;overflow:hidden}
+  .stat{background:var(--surface);padding:12px 14px}
+  .stat .k{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .stat .v{font-size:21px;font-weight:650;margin-top:2px}
+  .stat .v .u{font-size:12px;color:var(--muted);margin-left:2px}
+  .bar{height:10px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line-2);overflow:hidden;margin-top:6px}
+  .bar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent));min-width:6px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:7px 10px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+  td{padding:7px 10px;border-bottom:1px solid var(--line-2)}
+  td.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .fh-freeze td{color:var(--crit)}
+  .pill{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:6px;border:1px solid var(--line)}
+  .note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+  .win-card{border-left:4px solid var(--muted)}
+  .win-card.good{border-left-color:var(--good)}
+  .win-card.warn{border-left-color:var(--warn)}
+  .win-card.muted{border-left-color:var(--line)}
+  .win-verdict{font-size:26px;font-weight:680;letter-spacing:-.01em}
+  .win-card.good .win-verdict{color:var(--good)}
+  .win-card.warn .win-verdict{color:var(--warn)}
+  .win-card.muted .win-verdict{color:var(--ink-2)}
+  .win-reason{font-size:14px;color:var(--ink-2);margin-top:5px}
+  .win-stats{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .win-stats b{color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:650}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><small>geopilot</small>Geothermal Monitor</div>
+    <div class="conn" id="conn"><span class="dot"></span><span id="conn-text">connecting…</span></div>
+  </div>
+
+  <!-- ABOVE THE FOLD: homeowner summary -->
+  <div class="grid cards3" style="margin-top:18px">
+    <!-- System + Hot Water -->
+    <div class="card split">
+      <div class="half">
+        <div class="lbl">System</div>
+        <div class="state" id="mode"><span class="dot"></span><span id="mode-t">—</span></div>
+        <div class="sub" id="status">—</div>
+      </div>
+      <div class="half">
+        <div class="lbl">Hot Water</div>
+        <div class="state" id="dhw" style="font-size:17px"><span class="dot"></span><span id="dhw-t">—</span></div>
+        <div class="sub" id="dhw-sub">—</div>
+      </div>
+    </div>
+    <!-- Comfort + Outdoor -->
+    <div class="card split">
+      <div class="half">
+        <div class="lbl">Comfort</div>
+        <div id="zones"></div>
+      </div>
+      <div class="half">
+        <div class="lbl">Outdoor</div>
+        <div class="big mono" style="font-size:22px"><span id="outdoor">—</span><span class="u">°F</span></div>
+        <div class="sub" id="outdoor-sub">—</div>
+      </div>
+    </div>
+    <!-- Using Now + Cost Now -->
+    <div class="card split">
+      <div class="half">
+        <div class="lbl">Using Now</div>
+        <div class="big mono"><span id="total-w">—</span><span class="u">W</span></div>
+        <div class="sub" id="line-v">—</div>
+      </div>
+      <div class="half">
+        <div class="lbl">Cost Now</div>
+        <div class="big mono" style="font-size:22px"><span id="cost-hr">—</span></div>
+        <div class="sub" id="cost-sub">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FREE-COOLING ADVISOR -->
+  <h2>Should the windows be open?</h2>
+  <div class="card win-card" id="win-card">
+    <div class="win-verdict" id="win-verdict">—</div>
+    <div class="win-reason" id="win-reason"></div>
+    <div class="win-stats">
+      <span>indoor <b id="win-indoor">—</b></span>
+      <span>outdoor <b id="win-outdoor">—</b></span>
+      <span>dew point <b id="win-dewpoint">—</b></span>
+    </div>
+  </div>
+
+  <!-- DIAGNOSTICS -->
+  <h2>Ground Loop &amp; Freeze Watch</h2>
+  <div class="grid" style="grid-template-columns:2fr 1fr">
+    <div class="card">
+      <div class="stats">
+        <div class="stat"><div class="k">Entering Water</div><div class="v mono"><span id="ewt">—</span><span class="u">°F</span></div></div>
+        <div class="stat"><div class="k">Leaving Water</div><div class="v mono"><span id="lwt">—</span><span class="u">°F</span></div></div>
+        <div class="stat"><div class="k">Loop ΔT</div><div class="v mono"><span id="dt">—</span><span class="u">°F</span></div></div>
+        <div class="stat"><div class="k">Water Flow</div><div class="v mono"><span id="flow">—</span><span class="u">gpm</span></div></div>
+        <div class="stat"><div class="k">FP1 (source)</div><div class="v mono"><span id="fp1">—</span><span class="u">°F</span></div></div>
+        <div class="stat"><div class="k" id="heat-k">Heat Rate</div><div class="v mono"><span id="heat">—</span><span class="u">BTU/h</span></div></div>
+      </div>
+      <div class="note" id="freeze-note"></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Last Lockout</div>
+      <div class="state crit" style="font-size:19px" id="lastlock"><span class="dot"></span>—</div>
+      <div class="sub" id="lastlock-n"></div>
+      <div class="lbl" style="margin-top:16px">FP1 Freeze Trips (E5)</div>
+      <div class="big mono warn" id="e5">—</div>
+    </div>
+  </div>
+
+  <h2>Compressor, Blower &amp; Loop Pump</h2>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;font-size:13px"><span>Compressor Speed</span><span class="mono" id="comp-t">—</span></div>
+    <div class="bar"><span id="comp-bar" style="width:0%"></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:14px"><span>Blower</span><span class="mono" id="blower-t">—</span></div>
+    <div class="bar"><span id="blower-bar" style="width:0%"></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:14px"><span>Loop Pump (band <span id="pump-band">—</span>)</span><span class="mono" id="pump-t">—</span></div>
+    <div class="bar"><span id="pump-bar" style="width:0%"></span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-top:16px;padding-top:13px;border-top:1px solid var(--line-2)">
+      <span>Cabinet Ambient <span style="color:var(--muted);font-size:11.5px">· VS drive sensor — cabinet air, not outdoor</span></span>
+      <span class="mono" id="camb-t">—</span>
+    </div>
+    <div class="note" style="margin-top:6px">Runs ~10–15°F above the room from equipment heat; should rise with compressor runtime, not track outdoor. Watch the trend once a day of data is in.</div>
+  </div>
+
+  <h2>Fault History <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">— lifetime counts</span></h2>
+  <div class="card">
+    <table><thead><tr><th>Code</th><th>Fault</th><th style="text-align:right">Count</th></tr></thead>
+    <tbody id="faults"></tbody></table>
+  </div>
+
+  <p class="note">Live over WebSocket. Freeze codes (E4/E5) are highlighted. Fault counts are cumulative and capped at 999. See the project's DIAGNOSIS.md for the full workup.</p>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const f1=(v,d='—')=>v==null?d:(+v).toFixed(1);
+const i0=(v,d='—')=>v==null?d:Math.round(v).toString();
+function setState(el,cls,txt){el.className='state '+cls;el.querySelector('.dot')&&(el.innerHTML='<span class="dot"></span>'+txt)}
+
+function render(m){
+  // system
+  const mode=$('mode');mode.className='state '+(m.mode||'standby').toLowerCase();
+  $('mode-t').textContent=m.mode||'—';
+  const st=$('status');st.textContent=m.status||'—';
+  st.className='sub '+(m.status==='Lockout'?'crit':'good');
+  // comfort zones
+  $('zones').innerHTML=(m.zones||[]).map(z=>
+    `<div class="zone"><span><span class="z-temp mono">${f1(z.temp)}°</span></span>`+
+    `<span class="z-sp">Z${z.n} · set ${z.heat_sp}/${z.cool_sp}</span></div>`).join('')||'<div class="sub">no zones</div>';
+  // outdoor
+  $('outdoor').textContent=f1(m.outdoor);
+  $('outdoor-sub').textContent=[m.wx_text||null,
+    m.feels_like!=null?('feels '+f1(m.feels_like)+'°'):null,
+    m.wind_mph!=null?(f1(m.wind_mph)+' mph'):null,
+    m.humidity!=null?(i0(m.humidity)+'% RH'):null].filter(Boolean).join(' · ')||'—';
+  // energy
+  $('total-w').textContent=i0(m.total_w);
+  $('line-v').textContent=m.line_v!=null?m.line_v+' V line':'—';
+  // cost
+  $('cost-hr').textContent=m.cost_per_hour!=null?('$'+m.cost_per_hour.toFixed(2)+'/hr'):'—';
+  $('cost-sub').textContent=[m.rate_usd_per_kwh?('@ $'+m.rate_usd_per_kwh.toFixed(3)+'/kWh'):null,
+    m.cost_today!=null?('today $'+m.cost_today.toFixed(2)):null].filter(Boolean).join(' · ')||'—';
+  // windows advisor
+  const win=$('win-card'); win.className='card win-card '+(m.windows_class||'muted');
+  $('win-verdict').textContent=m.windows_open||'—';
+  $('win-reason').textContent=m.windows_reason||'';
+  $('win-indoor').textContent=m.indoor_avg!=null?f1(m.indoor_avg)+'°F':'—';
+  $('win-outdoor').textContent=m.outdoor!=null?f1(m.outdoor)+'°F':'—';
+  $('win-dewpoint').textContent=m.dewpoint!=null?f1(m.dewpoint)+'°F':'—';
+  // hot water: honest desuperheater state (server-computed from compressor load,
+  // not just the pump bit — a pump running at compressor idle only circulates
+  // already-hot tank water and trips E15 without the geo adding any heat)
+  $('dhw').className='state '+(m.dhw_class||'standby');
+  $('dhw-t').textContent=m.dhw_state||'—';
+  let dhwSub;
+  if(!m.dhw_enabled){ dhwSub='desuperheater off'; }
+  else if(m.dhw_state==='Circulating'){ dhwSub='pump on, compressor idle — no free heat'; }
+  else { dhwSub=[m.dhw_water_temp!=null?('water '+f1(m.dhw_water_temp)+'°F'):null,
+       m.dhw_setpoint!=null?('→ '+f1(m.dhw_setpoint)+'° limit'):null].filter(Boolean).join(' ')||'desuperheater'; }
+  $('dhw-sub').textContent=dhwSub;
+  // loop / freeze
+  $('ewt').textContent=f1(m.ewt);$('lwt').textContent=f1(m.lwt);
+  $('dt').textContent=m.loop_dt!=null?((m.loop_dt>=0?'+':'')+f1(m.loop_dt)):'—';
+  $('flow').textContent=f1(m.flow_gpm);$('fp1').textContent=f1(m.fp1);
+  $('heat-k').textContent=m.heat_kind==='extraction'?'Heat of Extraction':'Heat of Rejection';
+  $('heat').textContent=i0(m.heat_rate_btuh);
+  const ll=$('lastlock');$('lastlock').innerHTML='<span class="dot"></span>'+(m.last_lock_code||'None');
+  $('lastlock-n').textContent=m.last_lock_name||'';
+  const e5=(m.faults||[]).find(x=>x.code===5);
+  $('e5').textContent=e5?(e5.capped?'≥999':e5.count):'0';
+  $('freeze-note').textContent=m.heat_kind==='extraction'
+    ? 'Heating: watch FP1 and Heat of Extraction — high extraction with low flow drives the source coil toward the E5 freeze trip.'
+    : 'Cooling: rejecting heat to the loop. FP1 freeze risk applies in heating; E5 history shown at right.';
+  // operation bars
+  $('comp-t').textContent=(m.comp_actual||0)+' / 12'+(m.comp_desired?(' (des '+m.comp_desired+')'):'');
+  $('comp-bar').style.width=Math.round((m.comp_actual||0)/12*100)+'%';
+  $('blower-t').textContent=(m.blower_pct||0)+'%';$('blower-bar').style.width=(m.blower_pct||0)+'%';
+  $('pump-t').textContent=m.pump_pct!=null?m.pump_pct+'%':'—';
+  $('pump-band').textContent=(m.pump_min!=null&&m.pump_max!=null)?(m.pump_min+'–'+m.pump_max+'%'):'—';
+  $('pump-bar').style.width=(m.pump_pct||0)+'%';
+  $('camb-t').textContent=(m.cabinet_temp!=null?f1(m.cabinet_temp)+' °F':'—')+(m.outdoor!=null?('  ·  outdoor '+f1(m.outdoor)+'°F'):'');
+  // faults
+  $('faults').innerHTML=(m.faults||[]).sort((a,b)=>b.count-a.count).map(x=>
+    `<tr class="${x.code===4||x.code===5?'fh-freeze':''}"><td class="mono">E${x.code}</td><td>${x.name}</td>`+
+    `<td class="n">${x.capped?'≥999':x.count}</td></tr>`).join('')||'<tr><td colspan="3" class="sub">no faults recorded</td></tr>';
+}
+
+let ws,alive=false;
+function connect(){
+  ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+  ws.onopen=()=>{$('conn').classList.add('live');$('conn-text').textContent='live'};
+  ws.onmessage=e=>{try{render(JSON.parse(e.data))}catch(_){}$('conn-text').textContent='live · '+new Date().toLocaleTimeString()};
+  ws.onclose=()=>{$('conn').classList.remove('live');$('conn-text').textContent='reconnecting…';setTimeout(connect,2000)};
+  ws.onerror=()=>ws.close();
+}
+connect();
+</script>
+</body>
+</html>

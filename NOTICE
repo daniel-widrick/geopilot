@@ -1,0 +1,24 @@
+geopilot
+========
+
+An independent, unofficial project for monitoring and interoperating with a
+geothermal heat pump you own, after its manufacturer's cloud service was
+discontinued.
+
+Not affiliated with, authorized, sponsored, or endorsed by WaterFurnace
+International, Inc. or its affiliates. "WaterFurnace", "Aurora", "AWL", "Aurora
+WebLink", "Symphony", and "IntelliZone" are trademarks of their respective owners
+and are used here only for identification and interoperability — nominative fair
+use — not to imply any association.
+
+This project does not redistribute WaterFurnace firmware or any proprietary code.
+The documentation in docs/ describes the device's local interface (register map,
+CGI protocol, fault codes) as recovered by reverse-engineering for the purpose of
+interoperability with hardware the user owns, and records diagnostic findings from
+a specific unit.
+
+Any procedure that modifies device firmware (see docs/local-access.md) is provided
+for repair of hardware you own and is performed entirely at your own risk. It may
+carry legal implications depending on your jurisdiction. Nothing here is legal
+advice. The software and documentation are provided "AS IS", without warranty of
+any kind; see LICENSE.

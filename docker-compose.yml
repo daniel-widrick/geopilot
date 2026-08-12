@@ -1,0 +1,49 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: ${DB_USER:-geopilot}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-geopilot}
+      POSTGRES_DB: ${DB_NAME:-geopilot}
+    volumes:
+      - tsdata:/var/lib/postgresql/data
+      # migrations run in filename order on first init (empty volume) only
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    # No published port: the database is reachable only by the collector over the
+    # internal compose network (host `timescaledb`). Do not expose it to the LAN.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-geopilot} -d ${DB_NAME:-geopilot}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  collector:
+    build: .
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-geopilot}:${DB_PASSWORD:-geopilot}@timescaledb:5432/${DB_NAME:-geopilot}?sslmode=disable
+      AWL_URL: ${AWL_URL:-http://192.168.1.50}
+      AWL_PASSCODE: ${AWL_PASSCODE:-9999}
+      AWL_ADDR: ${AWL_ADDR:-1}
+      POLL_FAST: ${POLL_FAST:-5s}
+      POLL_MEDIUM: ${POLL_MEDIUM:-60s}
+      POLL_SLOW: ${POLL_SLOW:-1h}
+      BATCH_SIZE: ${BATCH_SIZE:-16}
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-open-meteo}
+      WEATHER_URL: ${WEATHER_URL:-}
+      WEATHER_LAT: ${WEATHER_LAT:-43.104}
+      WEATHER_LON: ${WEATHER_LON:--75.446}
+      POLL_WEATHER: ${POLL_WEATHER:-10m}
+      BAYOU_API_KEY: ${BAYOU_API_KEY:-}
+      BAYOU_CUSTOMER_ID: ${BAYOU_CUSTOMER_ID:-}
+      POLL_BAYOU: ${POLL_BAYOU:-12h}
+      WEB_ADDR: ":8080"
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  tsdata:

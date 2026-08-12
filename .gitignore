@@ -1,0 +1,41 @@
+# === Secrets — never commit ===
+.env
+.env.*
+**/.env
+**/.env.*
+# keep the templates
+!.env.example
+!**/.env.example
+# browser session / auth state, tokens
+*_auth.json
+ng_auth.json
+
+# === Personal account data (usage, bills, rates) ===
+rates/*.csv
+*.pdf
+*.xml
+downloads/
+
+# === Go build artifacts ===
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bayou
+/collector
+/bin/
+
+# === Python ===
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# === OS / editor cruft ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

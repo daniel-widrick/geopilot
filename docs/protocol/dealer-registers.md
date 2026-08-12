@@ -194,18 +194,35 @@ Z2 68/72). `31200 + 3·(z−1)` = zone size / priority. ccutrer's map confirms t
 base/stride independently (he labels the two config words "Configuration 1/2" with a
 setpoint carry bit spanning them).
 
-**Write (per zone, stride 9 from base 21202):** the setpoint write targets our own
-extraction only saw as unlabeled dealer write pages —
+**Write (per zone, stride 9) — VERIFIED live 2026-08-12.** Setpoints are set with a
+single `putregs`, value encoded as **°F × 10** (72.0 °F → `720`):
 
-| offset | register (zone z) | field |
-|---|---|---|
-| +0 | `21202 + 9·(z−1)` | Heating Mode |
-| +1 | `21203 + 9·(z−1)` | **Heating Setpoint** |
-| +2 | `21204 + 9·(z−1)` | **Cooling Setpoint** |
-| +3 | `21205 + 9·(z−1)` | Fan Mode |
-| +4 / +5 | `+6` / `+7` | Intermittent Fan On / Off time |
+| register (zone z) | field |
+|---|---|
+| `21203 + 9·(z−1)` | **Heating Setpoint** (°F × 10) |
+| `21204 + 9·(z−1)` | **Cooling Setpoint** (°F × 10) |
+| `21202 + 9·(z−1)` | Heating Mode |
+| `21205 + 9·(z−1)` | Fan Mode |
 
-These are the write targets for future per-zone setpoint automation (roadmap item 4).
+So Z1 cool = `21204`, Z2 cool = `21213`; Z1 heat = `21203`, Z2 heat = `21212`. Confirmed
+by `putregs 21204,720`, then watching the read-mirror `31008` change to coolSP 72.
+
+Gotchas that make a correct write look dead:
+
+- **It applies on the IZ2 sync cycle (~10–20 s), not instantly.** A readback within a few
+  seconds still shows the old value — this repeatedly looked like "no effect."
+- **Out-of-range / mis-scaled values are silently accepted, then ignored** — e.g. `0`, or a
+  bare `72` (= 7.2 °F, below the 54–99 °F cooling range). Always send °F × 10.
+- The read-mirror (`31007+3z` / `31008/9`) is **read-only** — writing it directly returns
+  `Exception 2`. Read setpoints there; write them at the `21xxx` block.
+- **Revert** by writing the prior value ×10 (e.g. `putregs 21204,760` restores 76 °F).
+
+This is (almost certainly) the path the dead Symphony cloud used for remote thermostat
+control — now recovered. It's the write target for per-zone setpoint automation
+(roadmap item 4), and matches ccutrer/waterfurnace_aurora (`iz2_zone.rb`: cool/heat at
+`21204`/`21203 + 9·(zone−1)`, value ×10). Note this contradicts an earlier working
+assumption that setpoints were unwritable — they are, just at the `21xxx` block with the
+×10 scaling and the sync delay, not the read-only `31xxx` mirror.
 
 **Also:** reg **31003 = IZ2 Outdoor Temperature** (the `31xxx` primary; `12004` is the
 `12xxx` variant our catalog already lists).

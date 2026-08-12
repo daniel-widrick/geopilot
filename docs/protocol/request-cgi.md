@@ -110,7 +110,15 @@ Live: Zone 1 = 74.0 °F (heat 70 / cool 76), Zone 2 = 72.0 °F (heat 68 / cool 7
 | Action | Write |
 |---|---|
 | **Clear fault history** (reset all 601–699 counters + last-lockout) | `reg 47 = 21845` (0x5555) |
-| Zone heat/cool setpoints, IZ2 settings, thermostat override, HA outputs | writable via the dealer/setup `m.U` pages |
+| **Zone cooling setpoint** (verified) | `reg 21204 + 9·(zone−1)` = **°F × 10** (72 °F → `720`) |
+| **Zone heating setpoint** (verified) | `reg 21203 + 9·(zone−1)` = **°F × 10** |
+| IZ2 settings, thermostat override, HA outputs | writable via the dealer/setup `m.U` pages |
+
+Zone setpoint writes **apply on the IZ2 sync cycle (~10–20 s)**, not instantly, and
+out-of-range/mis-scaled values (e.g. `0`, or a bare `72` = 7.2 °F) are silently ignored —
+always send °F × 10. The `31xxx` read-mirror reflects the applied value but **rejects
+direct writes** (`Exception 2`). See [`dealer-registers.md`](dealer-registers.md) → Zone
+control for the full detail and revert procedure.
 
 > Writes change live furnace/zone behavior. `reg 47 = 21845` also wipes the E5
 > freeze record — **snapshot the fault history first.** Validate any write target

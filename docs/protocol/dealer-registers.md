@@ -224,6 +224,28 @@ control — now recovered. It's the write target for per-zone setpoint automatio
 assumption that setpoints were unwritable — they are, just at the `21xxx` block with the
 ×10 scaling and the sync delay, not the read-only `31xxx` mirror.
 
+**Validation & limits — measured 2026-08-12 (boundary probe).**
+
+- **Cooling setpoint valid range: 54–99 °F** (`540`–`990`). Measured: 53 °F rejected / 54
+  applied at the floor; 99 applied / 100 rejected at the ceiling. Heating range is 40–90 °F
+  per ccutrer (not separately probed here).
+- **Out-of-range → reject, NOT clamp.** An out-of-range write keeps the *prior* value —
+  write 52 °F and it stays put, it does not snap to 54.
+- **Validation lives in the ABC/IZ2, not the AWL.** The decompiled AWL `putregs` handler
+  (`custom_http_app.c` / `FUN_9d01c108`) does *no* value validation: passcode-gated global
+  auth, then it relays any `reg,val` to the ABC. The `21xxx` register even stores the raw
+  out-of-range value; the IZ2 simply declines to *apply* it. The only wire guardrail is auth;
+  the range check is downstream and **silent** (no Modbus exception).
+- **Writes are a temporary hold, not permanent.** A setpoint written via `21204` can be
+  **overridden by the IZ2's own schedule** — observed live, a written 72 had drifted back to
+  74 by a later read. Durable programmatic control must write the schedule, force a permanent
+  hold, or re-assert the setpoint on a cadence.
+
+**ESP32 write-validation implication:** range-check (54–99 cool / 40–90 heat) *before*
+sending — the ABC won't warn you — issue the write, then **read the `31xxx` mirror back after
+the sync delay to confirm**, because a silently-rejected write is indistinguishable from a
+successful one at the wire.
+
 **Also:** reg **31003 = IZ2 Outdoor Temperature** (the `31xxx` primary; `12004` is the
 `12xxx` variant our catalog already lists).
 
